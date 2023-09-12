@@ -1,4 +1,4 @@
--- Module 1 - Demo 2 - File 1
+-- Session 1
 USE TSQL;
 GO
 
