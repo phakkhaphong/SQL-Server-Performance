@@ -1,0 +1,25 @@
+CREATE DATABASE [TestDB]
+ CONTAINMENT = NONE
+ ON  PRIMARY 
+( NAME = N'TestDB', FILENAME = N'D:\SQLDATA\TestDB.mdf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
+ LOG ON 
+( NAME = N'TestDB_log', FILENAME = N'D:\SQLDATA\TestDB_log.ldf' , SIZE = 8192KB , FILEGROWTH = 65536KB )
+GO
+
+USE TestDB;
+GO
+
+SELECT *
+INTO dbo.Employee
+FROM AdventureWorks.HumanResources.Employee;
+GO
+
+ALTER TABLE dbo.Employee
+ADD CONSTRAINT PK_Employee PRIMARY KEY ([BusinessEntityID]);
+GO
+
+CREATE NONCLUSTERED INDEX [IDX_NC_JobTiTle] ON [dbo].[Employee]
+(
+	[JobTitle] ASC
+)
+GO
