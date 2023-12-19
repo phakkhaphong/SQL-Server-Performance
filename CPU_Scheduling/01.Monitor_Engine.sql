@@ -35,6 +35,9 @@ WHERE ss.is_user_process=1;
 -- A high number of runnable tasks for a long duration may indicate CPU pressure.
 SELECT * FROM sys.dm_os_schedulers;
 
+SELECT * FROM sys.dm_os_schedulers
+WHERE status='VISIBLE ONLINE';
+
 -- Step 6 - all information together
 SELECT * 
 FROM sys.dm_exec_sessions AS ses
