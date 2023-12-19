@@ -47,7 +47,7 @@ JOIN sys.dm_os_tasks AS tsk
 ON   tsk.session_id = ses.session_id
 JOIN sys.dm_os_schedulers AS sch
 ON	 sch.scheduler_id = tsk.scheduler_id
-WHERE ses.session_id > 50;
+WHERE ses.is_user_process =1;
 
 -- Step 7 - CPU history from sys.dm_os_ring_buffer
 SELECT Notification_Time, ProcessUtilization AS SQLProcessUtilization,
