@@ -16,16 +16,18 @@ ORDER BY session_id DESC;
 -- column that shows if the request is running, runnable or suspended.
 SELECT * FROM sys.dm_exec_requests;
 
-SELECT * FROM sys.dm_exec_requests
-WHERE session_id > 50; --exclude system sessions
+SELECT * FROM sys.dm_exec_requests as rq
+INNER JOIN sys.dm_exec_sessions as ss ON rq.session_id=ss.session_id
+WHERE ss.is_user_process=1
 
 -- Step 4 - show tasks
 -- Note that there is a record for each active task. 
 -- The task_state column shows if the task is RUNNING, SUSPENDED or RUNNABLE.
 SELECT * from sys.dm_os_tasks;
 
-SELECT * from sys.dm_os_tasks
-WHERE session_id > 50; --exclude system sessions and tasks not linked to a session
+SELECT * from sys.dm_os_tasks as ts 
+INNER JOIN sys.dm_exec_sessions as ss ON ts.session_id=ss.session_id
+WHERE ss.is_user_process=1;
 
 -- Step 5 - show schedulers
 -- Note that the current_tasks_count and runnable_tasks_count columns indicate total number of tasks 
