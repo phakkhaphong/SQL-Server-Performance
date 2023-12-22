@@ -36,3 +36,15 @@ GO
 SELECT * FROM Production.Product2
 WHERE Color='White'
 GO
+
+--Test 4 Traditional Cover-Index 
+--Generate Estimated Execution Plan
+
+SELECT P.ProductID,P.Color FROM Production.Product2 as P
+WHERE P.Color='White'
+GO
+
+--Test 5 Non-Cover-Index (Lookup TABLE Content)
+SELECT P.ProductID,P.Color,P.ListPrice FROM Production.Product2 as P
+WHERE P.Color='White'
+GO
