@@ -1,5 +1,5 @@
-DBCC SQLPERF ('sys.dm_os_wait_stats', CLEAR);
-GO
+--DBCC SQLPERF ('sys.dm_os_wait_stats', CLEAR);
+--GO
 
 WITH [Waits] 
 AS (SELECT wait_type, wait_time_ms/ 1000.0 AS [WaitS],
