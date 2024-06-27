@@ -23,7 +23,7 @@ SELECT * FROM Production.Product2
 WHERE Color='Grey' 
 GO
 
---Add Primary Key (Cluster Key)
+--Add Primary Key (Cluster Key , convert HEAP to Clustered Index)
 ALTER TABLE Production.Product2 ADD CONSTRAINT
 	PK_Product2 PRIMARY KEY CLUSTERED 
 	(
