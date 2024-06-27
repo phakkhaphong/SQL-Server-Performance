@@ -1,13 +1,26 @@
---CREATE Test Table
+--CREATE HEAP Table
 SELECT
 *
 INTO Production.Product2
 FROM Production.Product;
 GO
 
----Test 1 Generate Estimated Execution Plan
+---Test 1 Generate Estimated Execution Plan 
 SELECT * FROM Production.Product2
-WHERE Color='Red' 
+WHERE Color='Grey' 
+GO
+
+--Create Non-Clustered Index on Color column ON HEAP TABLE
+CREATE NONCLUSTERED INDEX [NIDX_Product2_Color] ON [Production].[Product2]
+(
+	[Color] ASC
+)
+GO
+
+---Test 1 Generate Estimated Execution Plan (NIDX on HEAP)
+
+SELECT * FROM Production.Product2
+WHERE Color='Grey' 
 GO
 
 --Add Primary Key (Cluster Key)
@@ -18,33 +31,19 @@ ALTER TABLE Production.Product2 ADD CONSTRAINT
 	)
 GO
 
---Create Non-Clustered Index on Color column
-CREATE NONCLUSTERED INDEX [NIDX_Product2_Color] ON [Production].[Product2]
-(
-	[Color] ASC
-)
-GO
-
---Test 2 Generate Estimated Execution Plan
+---Test 2 Generate Estimated Execution Plan (NIDX on Clustered Index)
 SELECT * FROM Production.Product2
-WHERE Color='Red' 
+WHERE Color='Grey' 
 GO
-
---Test 3 Generate Estimated Execution Plan
-
-
-SELECT * FROM Production.Product2
-WHERE Color='White'
+---Test 3 Generate Estimated Execution Plan (NIDX on Clustered Index)
+SELECT color FROM Production.Product2 --Covered Index
+WHERE Color='Grey' 
 GO
-
---Test 4 Traditional Cover-Index 
---Generate Estimated Execution Plan
-
-SELECT P.ProductID,P.Color FROM Production.Product2 as P
-WHERE P.Color='White'
+---Test 4 Generate Estimated Execution Plan (NIDX on Clustered Index)
+SELECT color,ProductID FROM Production.Product2 --Covered Index
+WHERE Color='Grey' 
 GO
-
---Test 5 Non-Cover-Index (Lookup TABLE Content)
-SELECT P.ProductID,P.Color,P.ListPrice FROM Production.Product2 as P
-WHERE P.Color='White'
+---Test 5 Generate Estimated Execution Plan (NIDX on Clustered Index)
+SELECT color,ProductID,ProductLine FROM Production.Product2
+WHERE Color='Grey' 
 GO
