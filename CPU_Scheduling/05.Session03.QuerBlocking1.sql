@@ -1,12 +1,14 @@
--- ขั้นตอนที่ 1 - เปิดและรัน 
+-- ขั้นตอนที่ 1 - เปิดและรัน 05.Session01.Create-Hanging-Transaction.sql
 -- จดบันทึกค่าของ update_session_id ในบานหน้าต่างผลลัพธ์
 
--- ขั้นตอนที่ 2 - จากโซลูชันเปิดและเรียกใช้แบบสอบถาม Demo2ii - เริ่มบล็อก transaction.sql กับ MIA-SQL
+-- ขั้นตอนที่ 2 - เปิดและรัน 05.Session02.Start-blocked-transaction.sql
 -- จดบันทึกค่าของ select_session_id ในบานหน้าต่างผลลัพธ์
 
--- ขั้นตอนที่ 3 - เพิ่มค่าของ update_session_id และ select_session_id ที่รวบรวมในสองขั้นตอนสุดท้าย
--- ไปที่โต๊ะชั่วคราว
-- แทนที่ค่าในส่วนคําสั่ง VALUES ด้านล่าง (คุณสามารถใช้พารามิเตอร์เทมเพลต - Ctrl + Shift + M)
+-- ขั้นตอนที่ 3 - เพิ่มค่าของ update_session_id และ select_session_id ที่รวบรวมในสองขั้นตอนแรก
+-- ไปที่ temporary table
+
+-- แทนที่ค่าในส่วนคําสั่ง VALUES ด้านล่าง (คุณสามารถใช้พารามิเตอร์เทมเพลต - Ctrl + Shift + M)
+
 DROP TABLE IF EXISTS #session;
 CREATE TABLE #session (session_id int NOT NULL);
 
@@ -14,32 +16,36 @@ INSERT #session
 VALUES (<update_session_id, int,NULL>),(<select_session_id, int, NULL>);
 
 
--- Step 4 - View session status 
--- Note that:
---   the update session has the status sleeping
---   the select session has the status running
+-- ขั้นตอนที่ 4 - ดูสถานะ session
+-- โปรดทราบว่า:
+-- update session มีสถานะ Sleeping
+-- select session มีสถานะ Running
+
 SELECT status, * 
 FROM sys.dm_exec_sessions 
 WHERE session_id IN (SELECT session_id FROM #session);
 
--- Step 5 - View request status
--- Note that:
---   the update session has no request, because it is not currently working
---   the select session request has a suspended status, because it is waiting for a resource to become free
+-- ขั้นตอนที่ 5 - ดูสถานะ request
+-- โปรดทราบว่า:
+-- update session ไม่มีคําขอ เนื่องจากไม่ทํางานในขณะนี้
+-- คําขอของ select session มีสถานะ suspended  เนื่องจากกําลังรอให้ทรัพยากรว่าง
+
 SELECT status, * 
 FROM sys.dm_exec_requests  
 WHERE session_id IN (SELECT session_id FROM #session);
 
--- Step 6 - View task status
---   the update session has no task, because it is not currently working
---   the select session task has a suspended status, because it is waiting for a resource to become free
+-- ขั้นตอนที่ 6 - ดูสถานะ task
+-- update session ไม่มีงาน เนื่องจากไม่ทํางานในขณะนี้
+-- งานของ select session มีสถานะ suspended เนื่องจากกําลังรอให้ทรัพยากรว่าง
+
 SELECT * 
 FROM sys.dm_os_tasks
 WHERE session_id IN (SELECT session_id FROM #session);
 
--- Step 7 - View worker status
---   the update session has no worker, because it is not currently working
---   the select session worker has a suspended status, because it is waiting for a resource to become free
+-- ขั้นตอนที่ 7 - ดูสถานะ Worker
+-- update session ไม่มี Worker เนื่องจากไม่ได้ทํางานอยู่ในขณะนี้
+-- Worker ของ select session มีสถานะ suspended เนื่องจากกําลังรอให้ทรัพยากรว่าง
+
 SELECT dot.session_id, dow.state, dow.*
 FROM sys.dm_os_workers AS dow
 JOIN sys.dm_os_tasks AS dot
