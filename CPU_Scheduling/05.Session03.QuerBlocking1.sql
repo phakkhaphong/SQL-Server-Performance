@@ -1,14 +1,12 @@
--- Module 1 - Demo 2 - File 3
+-- ขั้นตอนที่ 1 - เปิดและรัน 
+-- จดบันทึกค่าของ update_session_id ในบานหน้าต่างผลลัพธ์
 
--- Step 1 - From the solution, open and execute the query Demo2i - Create hanging transaction.sql against MIA-SQL
--- note the value of update_session_id in the results pane
+-- ขั้นตอนที่ 2 - จากโซลูชันเปิดและเรียกใช้แบบสอบถาม Demo2ii - เริ่มบล็อก transaction.sql กับ MIA-SQL
+-- จดบันทึกค่าของ select_session_id ในบานหน้าต่างผลลัพธ์
 
--- Step 2 - From the solution, open and execute the query Demo2ii - Start blocked transaction.sql against MIA-SQL
--- note the value of select_session_id in the results pane
-
--- Step 3 - Add the values of update_session_id and select_session_id collected in the last two steps
--- to a temporary table.
--- substitute the values in the VALUES clause below (you can use template parameters - Ctrl + Shift + M)
+-- ขั้นตอนที่ 3 - เพิ่มค่าของ update_session_id และ select_session_id ที่รวบรวมในสองขั้นตอนสุดท้าย
+-- ไปที่โต๊ะชั่วคราว
+- แทนที่ค่าในส่วนคําสั่ง VALUES ด้านล่าง (คุณสามารถใช้พารามิเตอร์เทมเพลต - Ctrl + Shift + M)
 DROP TABLE IF EXISTS #session;
 CREATE TABLE #session (session_id int NOT NULL);
 
