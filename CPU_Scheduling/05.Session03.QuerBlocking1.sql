@@ -52,7 +52,7 @@ JOIN sys.dm_os_tasks AS dot
 ON   dot.task_address = dow.task_address
 WHERE dot.session_id IN (SELECT session_id FROM #session);
 
--- Step 8 - view time spent waiting/runnable
+-- ขั้นตอนที่ 8 - ดูเวลาที่ใช้ใน waiting/runnable
 SELECT	dot.session_id, 
 		dow.state,
 		CASE WHEN dow.state = 'SUSPENDED' 
@@ -68,9 +68,10 @@ JOIN sys.dm_os_tasks AS dot
 ON   dot.task_address = dow.task_address
 WHERE dot.session_id IN (SELECT session_id FROM #session);
 
--- Step 9 - view thread status
---   the update session has no thread, because it is not currently working
---   the select session thread has a suspended status, because it is waiting for a resource to become free
+-- ขั้นตอนที่ 9 - ดูสถานะ thread
+-- update session ไม่มีเธรดเนื่องจากไม่ทํางาน
+-- เธรดของ select session มีสถานะ suspended เนื่องจากกําลังรอให้ทรัพยากรว่าง
+
 SELECT dot.session_id,  dth.*
 FROM sys.dm_os_threads dth
 JOIN sys.dm_os_workers AS dow
@@ -84,3 +85,9 @@ WHERE dot.session_id IN (SELECT session_id FROM #session);
 
 -- Step 11 - return to the query window where Demo2ii - Start blocked transaction.sql is running.
 -- notice that the query is no longer blocked and results have been returned.
+
+-- ขั้นตอนที่ 10 - กลับไปที่ 05.Session01.Create-Hanging-Transaction.sql ที่กำลังทำงานอยู่
+-- ยกเลิกด้วยคําสั่ง ROLLBACK ที่ส่วนท้ายของไฟล์
+
+-- ขั้นตอนที่ 11 - กลับไปที่ 05.Session02.Start-blocked-transaction.sql
+-- สังเกตว่า Query ไม่ได้ถูกบล็อกอีกต่อไปและผลลัพธ์ถูกส่งคืนแล้ว
