@@ -20,3 +20,11 @@ SELECT * FROM sys.dm_exec_sql_text(--sql-handle---)
 SELECT * FROM sys.dm_exec_query_plan(--Plan-handle--)
 
 GO
+
+SELECT 
+	cp.*
+,	X.text
+,	Y.query_plan
+FROM sys.dm_exec_cached_plans as cp
+CROSS APPLY sys.dm_exec_sql_text(cp.plan_handle) as X
+CROSS APPLY sys.dm_exec_query_plan(cp.plan_handle) as Y;
