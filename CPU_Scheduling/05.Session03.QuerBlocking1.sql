@@ -13,7 +13,9 @@ DROP TABLE IF EXISTS #session;
 CREATE TABLE #session (session_id int NOT NULL);
 
 INSERT #session
-VALUES (<update_session_id, int,NULL>),(<select_session_id, int, NULL>);
+VALUES (63),(99);
+
+SELECT * FROM #session
 
 
 -- ขั้นตอนที่ 4 - ดูสถานะ session
@@ -32,6 +34,11 @@ WHERE session_id IN (SELECT session_id FROM #session);
 
 SELECT status, * 
 FROM sys.dm_exec_requests  
+WHERE session_id IN (SELECT session_id FROM #session);
+
+SELECT
+*
+FROM sys.dm_os_waiting_tasks
 WHERE session_id IN (SELECT session_id FROM #session);
 
 -- ขั้นตอนที่ 6 - ดูสถานะ task
