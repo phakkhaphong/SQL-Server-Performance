@@ -1,3 +1,6 @@
+USE Master;
+GO
+
 SELECT * FROM sys.dm_exec_cached_plans as cp
 
 
