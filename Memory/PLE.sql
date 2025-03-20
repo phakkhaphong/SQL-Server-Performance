@@ -23,4 +23,8 @@ SELECT cntr_value FROM sys.dm_os_performance_counters
 WHERE object_name='SQLServer:Buffer Node'
 AND counter_name='Page life expectancy'
 
+SELECT cntr_value FROM sys.dm_os_performance_counters
+WHERE object_name='SQLServer:Buffer Manager'
+AND counter_name='Page life expectancy'
+
 --If cntr_value < 141.750000 === Memory Pressure
