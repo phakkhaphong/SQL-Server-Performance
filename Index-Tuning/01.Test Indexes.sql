@@ -1,3 +1,5 @@
+USE AdventureWorks
+GO
 --CREATE HEAP Table
 SELECT
 *
@@ -46,4 +48,9 @@ GO
 ---Test 5 Generate Estimated Execution Plan (NIDX on Clustered Index)
 SELECT color,ProductID,ProductLine FROM Production.Product2
 WHERE Color='Grey' 
+GO
+
+---Test 6 Generate Estimated Execution Plan (NIDX on Clustered Index)
+SELECT color,ProductID FROM Production.Product2
+WHERE Color='White' 
 GO
