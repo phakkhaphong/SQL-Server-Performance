@@ -1,0 +1,304 @@
+## ระบบภายในของ tempdb (tempdb Internals)
+
+### วัตถุประสงค์ของบทเรียน
+หลังจากเสร็จสิ้นบทเรียนนี้ คุณจะสามารถ:
+- เข้าใจหน้าที่และความสำคัญของ tempdb
+- กำหนดค่า tempdb สำหรับประสิทธิภาพสูงสุด
+- แก้ไขปัญหาที่เกี่ยวข้องกับ tempdb
+- ตรวจสอบการใช้งาน tempdb
+
+### ความสำคัญของ tempdb
+
+#### หน้าที่หลักของ tempdb
+1. **Temporary Tables และ Table Variables**
+2. **Internal Work Tables** สำหรับ sorting และ hashing
+3. **Version Store** สำหรับ Row Versioning
+4. **Service Broker** queues
+5. **XML processing**
+6. **MARS (Multiple Active Result Sets)**
+
+#### ลักษณะพิเศษของ tempdb
+- **Global Resource**: ใช้ร่วมกันโดยทุก Database
+- **Recreated on Restart**: สร้างใหม่ทุกครั้งที่ SQL Server restart
+- **Simple Recovery Model**: ไม่สามารถเปลี่ยนได้
+
+### การกำหนดค่า tempdb
+
+#### จำนวนไฟล์ข้อมูล
+```sql
+-- แนะนำ: จำนวนไฟล์เท่ากับจำนวน CPU Cores (สูงสุด 8 ไฟล์)
+-- หากมี CPU มากกว่า 8 cores เริ่มจาก 8 ไฟล์และเพิ่มทีละ 4 หากจำเป็น
+
+-- ตรวจสอบจำนวน CPU
+SELECT cpu_count FROM sys.dm_os_sys_info;
+
+-- ดู tempdb files ปัจจุบัน
+SELECT 
+    name,
+    physical_name,
+    size * 8 / 1024 AS 'Size (MB)',
+    growth
+FROM tempdb.sys.database_files;
+```
+
+#### การเพิ่มไฟล์ข้อมูลใน tempdb
+```sql
+-- เพิ่ม Data File ใน tempdb
+ALTER DATABASE tempdb
+ADD FILE (
+    NAME = 'tempdev2',
+    FILENAME = 'C:\TempDB\tempdev2.ndf',
+    SIZE = 100MB,
+    FILEGROWTH = 10MB
+);
+
+-- เพิ่ม Data File อีกไฟล์
+ALTER DATABASE tempdb
+ADD FILE (
+    NAME = 'tempdev3',
+    FILENAME = 'C:\TempDB\tempdev3.ndf',
+    SIZE = 100MB,
+    FILEGROWTH = 10MB
+);
+```
+
+### การจัดวางไฟล์ tempdb
+
+#### ข้อแนะนำการจัดวางไฟล์
+1. **แยก tempdb จาก User Databases**
+2. **ใช้ Fast Storage** (SSD หรือ high-speed disks)
+3. **วางในไดร์ฟเฉพาะ** เพื่อลด I/O contention
+4. **ขนาดไฟล์เท่ากัน** เพื่อการกระจายโหลดที่เท่าเทียม
+
+#### การตั้งค่าขนาดไฟล์
+```sql
+-- ปรับขนาดไฟล์ tempdb ให้เท่ากัน
+ALTER DATABASE tempdb
+MODIFY FILE (
+    NAME = 'tempdev',
+    SIZE = 100MB,
+    FILEGROWTH = 10MB
+);
+
+ALTER DATABASE tempdb
+MODIFY FILE (
+    NAME = 'tempdev2',
+    SIZE = 100MB,
+    FILEGROWTH = 10MB
+);
+```
+
+### การตรวจสอบประสิทธิภาพ tempdb
+
+#### ตรวจสอบการใช้พื้นที่
+```sql
+-- ดูการใช้พื้นที่ใน tempdb
+SELECT 
+    SUM(unallocated_extent_page_count) AS [free pages],
+    SUM(unallocated_extent_page_count) * 8 / 1024 AS [free space (MB)]
+FROM tempdb.sys.dm_db_file_space_usage;
+
+-- ดูการใช้พื้นที่แยกตามประเภท
+SELECT 
+    user_object_reserved_page_count * 8 / 1024 AS [User Objects (MB)],
+    internal_object_reserved_page_count * 8 / 1024 AS [Internal Objects (MB)],
+    version_store_reserved_page_count * 8 / 1024 AS [Version Store (MB)]
+FROM tempdb.sys.dm_db_file_space_usage;
+```
+
+#### ตรวจสอบ Page Allocation Contention
+```sql
+-- ตรวจสอบ wait statistics สำหรับ tempdb contention
+SELECT 
+    wait_type,
+    waiting_tasks_count,
+    wait_time_ms,
+    max_wait_time_ms,
+    signal_wait_time_ms
+FROM sys.dm_os_wait_stats
+WHERE wait_type LIKE 'PAGE%LATCH%'
+AND wait_type IN ('PAGELATCH_UP', 'PAGELATCH_EX', 'PAGEIOLATCH_UP', 'PAGEIOLATCH_EX');
+```
+
+### การแก้ไขปัญหา tempdb
+
+#### ปัญหาที่พบบ่อยและการแก้ไข
+1. **Allocation Contention**:
+   - เพิ่มจำนวนไฟล์ข้อมูล
+   - ใช้ Trace Flag 1118
+
+2. **Space Issues**:
+   - ตรวจสอบ queries ที่ใช้ tempdb มาก
+   - ปรับขนาด initial size
+
+3. **I/O Bottlenecks**:
+   - ย้าย tempdb ไป fast storage
+   - แยกไฟล์ log ออกจากไฟล์ data
+
+#### การใช้ Trace Flags
+```sql
+-- ตรวจสอบ Trace Flags ที่เปิดอยู่
+DBCC TRACESTATUS(-1);
+
+-- เปิด Trace Flag 1118 (Uniform Extent Allocation)
+DBCC TRACEON(1118, -1);
+
+-- เปิด Trace Flag 1117 (Grow all files in filegroup equally)
+DBCC TRACEON(1117, -1);
+```
+
+### แนวปฏิบัติที่ดี tempdb
+- ตั้งค่าจำนวนไฟล์เท่ากับจำนวน CPU cores
+- ขนาดไฟล์ทุกไฟล์เท่ากัน
+- ตั้งค่า initial size ให้เพียงพอ
+- วางไฟล์ใน fast, dedicated storage
+- เปิดใช้งาน Trace Flags 1117 และ 1118
+- ตรวจสอบการใช้งานอย่างสม่ำเสมอ
+
+---
+
+## แลปปฏิบัติการ: โครงสร้างฐานข้อมูล
+
+### วัตถุประสงค์ของแลป
+- สร้างและกำหนดค่า filegroups
+- ปรับปรุงการตั้งค่า tempdb
+- ตรวจสอบการใช้พื้นที่ในฐานข้อมูล
+- แก้ไขปัญหาการเติบโตของไฟล์
+
+### Exercise 1: การจัดการ Filegroups
+
+#### Task 1: สร้าง Secondary Filegroup
+```sql
+-- สร้างฐานข้อมูลทดสอบ
+CREATE DATABASE [LabDB]
+ON (
+    NAME = 'LabDB_Data',
+    FILENAME = 'C:\LabFiles\LabDB.mdf',
+    SIZE = 50MB,
+    FILEGROWTH = 10MB
+)
+LOG ON (
+    NAME = 'LabDB_Log',
+    FILENAME = 'C:\LabFiles\LabDB.ldf',
+    SIZE = 10MB,
+    FILEGROWTH = 10%
+);
+
+-- เพิ่ม Secondary Filegroup
+ALTER DATABASE [LabDB]
+ADD FILEGROUP [IndexFG];
+
+-- เพิ่มไฟล์ข้อมูลใน IndexFG
+ALTER DATABASE [LabDB]
+ADD FILE (
+    NAME = 'LabDB_Index',
+    FILENAME = 'C:\LabFiles\LabDB_Index.ndf',
+    SIZE = 30MB,
+    FILEGROWTH = 10MB
+) TO FILEGROUP [IndexFG];
+```
+
+#### Task 2: สร้างตารางและ Index ใน Filegroups
+```sql
+USE [LabDB];
+
+-- สร้างตารางใน Primary Filegroup
+CREATE TABLE Sales (
+    SalesID int IDENTITY(1,1) PRIMARY KEY,
+    ProductID int,
+    SalesDate datetime,
+    Amount money,
+    CustomerID int
+) ON [PRIMARY];
+
+-- สร้าง Index ใน IndexFG
+CREATE INDEX IX_Sales_Date 
+ON Sales (SalesDate) 
+ON [IndexFG];
+
+CREATE INDEX IX_Sales_Customer 
+ON Sales (CustomerID) 
+ON [IndexFG];
+```
+
+### Exercise 2: การปรับปรุง tempdb
+
+#### Task 1: ตรวจสอบการตั้งค่า tempdb ปัจจุบัน
+```sql
+-- ดูจำนวน CPU
+SELECT cpu_count FROM sys.dm_os_sys_info;
+
+-- ดูไฟล์ tempdb ปัจจุบัน
+SELECT 
+    name,
+    physical_name,
+    size * 8 / 1024 AS 'Size (MB)',
+    growth,
+    is_percent_growth
+FROM tempdb.sys.database_files
+ORDER BY file_id;
+```
+
+#### Task 2: เพิ่มไฟล์ข้อมูลใน tempdb
+```sql
+-- เพิ่มไฟล์ข้อมูลเพิ่มเติม (ต้อง restart SQL Server เพื่อให้มีผล)
+ALTER DATABASE tempdb
+ADD FILE (
+    NAME = 'tempdev2',
+    FILENAME = 'C:\TempDB\tempdev2.ndf',
+    SIZE = 100MB,
+    FILEGROWTH = 10MB
+);
+
+ALTER DATABASE tempdb
+ADD FILE (
+    NAME = 'tempdev3',
+    FILENAME = 'C:\TempDB\tempdev3.ndf',
+    SIZE = 100MB,
+    FILEGROWTH = 10MB
+);
+
+-- ปรับขนาดไฟล์ให้เท่ากัน
+ALTER DATABASE tempdb
+MODIFY FILE (
+    NAME = 'tempdev',
+    SIZE = 100MB
+);
+```
+
+### Exercise 3: การตรวจสอบประสิทธิภาพ
+
+#### Task 1: ตรวจสอบการใช้พื้นที่
+```sql
+-- ตรวจสอบพื้นที่ว่างในฐานข้อมูล
+USE [LabDB];
+SELECT 
+    name,
+    size * 8 / 1024 AS 'File Size (MB)',
+    FILEPROPERTY(name, 'SpaceUsed') * 8 / 1024 AS 'Used Space (MB)',
+    (size - FILEPROPERTY(name, 'SpaceUsed')) * 8 / 1024 AS 'Free Space (MB)',
+    CAST((CAST(FILEPROPERTY(name, 'SpaceUsed') AS float) / CAST(size AS float)) * 100 AS decimal(5,2)) AS 'Percent Used'
+FROM sys.database_files;
+```
+
+#### Task 2: ตรวจสอบการใช้งาน tempdb
+```sql
+-- ตรวจสอบการใช้พื้นที่ใน tempdb
+SELECT 
+    SUM(user_object_reserved_page_count) * 8 / 1024 AS [User Objects (MB)],
+    SUM(internal_object_reserved_page_count) * 8 / 1024 AS [Internal Objects (MB)],
+    SUM(version_store_reserved_page_count) * 8 / 1024 AS [Version Store (MB)],
+    SUM(unallocated_extent_page_count) * 8 / 1024 AS [Free Space (MB)]
+FROM tempdb.sys.dm_db_file_space_usage;
+```
+
+### คำถามทบทวน
+1. **เหตุใดจึงควรใช้หลาย Data Files สำหรับ tempdb?**
+   - เพื่อลด allocation contention
+   - เพื่อการกระจาย I/O load
+   - เพื่อปรับปรุงประสิทธิภาพโดยรวม
+
+2. **ขนาด Initial Size ของไฟล์ควรตั้งอย่างไร?**
+   - ตั้งให้เพียงพอกับความต้องการปกติ
+   - หลีกเลี่ยงการ autogrowth บ่อยๆ
+   - ช่วยลดการกระจัดกระจายของไฟล์
