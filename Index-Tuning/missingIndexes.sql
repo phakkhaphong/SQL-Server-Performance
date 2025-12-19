@@ -8,10 +8,12 @@ SELECT
 ,	CONVERT(decimal(18,2), migs.avg_total_user_cost) AS [avg_total_user_,cost]
 ,	migs.avg_user_impact
 ,	REPLACE(REPLACE(LEFT(st.[text], 255), CHAR(10),''), CHAR(13),'') AS [Short Query Text]
+,	cp.query_plan
 FROM sys.dm_db_missing_index_groups AS mig WITH (NOLOCK) 
 INNER JOIN sys.dm_db_missing_index_group_stats_query AS migs WITH(NOLOCK) 
 ON mig.index_group_handle = migs.group_handle 
 CROSS APPLY sys.dm_exec_sql_text(migs.last_sql_handle) AS st 
+CROSS APPLY sys.dm_exec_query_plan(migs.last_sql_handle) as cp
 INNER JOIN sys.dm_db_missing_index_details AS mid WITH (NOLOCK) 
 ON mig.index_handle = mid.index_handle 
 ORDER BY index_advantage DESC OPTION (RECOMPILE);
